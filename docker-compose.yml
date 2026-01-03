@@ -1,0 +1,107 @@
+services:
+  website_postgres:
+    image: bitnamilegacy/postgresql:17.6.0-debian-12-r0
+    container_name: website_postgres
+    environment:
+      POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+      POSTGRESQL_DATABASE: ${POSTGRESQL_DATABASE}
+    ports:
+      - "${POSTGRESQL_PORT:-5432}:5432"
+    volumes:
+      - ./.database/persistent:/bitnami/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRESQL_USERNAME} -d ${POSTGRESQL_DATABASE}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - website_network
+
+  website_redis:
+    image: redis:8.0-alpine
+    container_name: website_redis
+    volumes:
+      - ./.database/cache:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - website_network
+
+  website_flyway:
+    image: flyway/flyway:11.3
+    container_name: website_flyway
+    environment:
+      FLYWAY_URL: jdbc:postgresql://website_postgres:5432/${POSTGRESQL_DATABASE}
+      FLYWAY_USER: ${POSTGRESQL_USERNAME}
+      FLYWAY_PASSWORD: ${POSTGRESQL_PASSWORD}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+    volumes:
+      - ./src/main/resources/database/migrations:/flyway/sql
+    command: ["migrate"]
+    depends_on:
+      website_postgres:
+        condition: service_healthy
+    networks:
+      - website_network
+
+  website_backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: website_backend
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      REDIS_HOST: website_redis
+      REDIS_PORT: 6379
+      CACHE_EXPIRATION: ${REDIS_CACHE_EXPIRATION:-10}
+      POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+      POSTGRESQL_DATABASE: ${POSTGRESQL_DATABASE}
+      POSTGRESQL_URL: jdbc:postgresql://website_postgres:5432/${POSTGRESQL_DATABASE}
+      GAMESTATS_API_URL: ${GAMESTATS_API_URL}
+      GAMESTATS_API_SECRET_KEY: ${GAMESTATS_API_SECRET_KEY}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    depends_on:
+      website_postgres:
+        condition: service_healthy
+      website_redis:
+        condition: service_healthy
+      website_flyway:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - website_network
+      - microservices_network
+
+  website_nginx:
+    image: nginx:alpine
+    container_name: website_nginx
+    ports:
+      - "${EXTERNAL_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - website_backend
+    restart: unless-stopped
+    networks:
+      - website_network
+
+networks:
+  website_network:
+  microservices_network:
+    external: true

@@ -1,0 +1,30 @@
+package com.ffx64.api.dto;
+
+public record LeaderboardStatsDTO(
+        String id,
+        String player_id,
+        Integer level,
+        Integer xp,
+        Integer kills,
+        Integer deaths,
+        Integer grenades_thrown,
+        Integer friendly_fire_kills,
+        Integer friendly_fire_deaths,
+        Integer headshots_made,
+        Integer headshots_taken,
+        Integer vehicle_kills,
+        Integer vehicle_deaths,
+        Float longest_kill_distance,
+        Float average_kill_distance,
+        Float average_death_distance,
+        String weapons_most_used,
+        String vehicle_most_used,
+        String hit_zones_most_killed,
+        String hit_zones_most_died,
+        Float ratio_kdr,
+        Float ratio_headshot,
+        Float ratio_friendly_fire,
+        Float max_kill_distance,
+        String updated_at,
+        String created_at) {
+}
