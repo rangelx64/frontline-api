@@ -14,9 +14,9 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "clan_members", indexes = {
-        @Index(name = "idx_clans_members_clan_id ", columnList = "clan_id"),
-        @Index(name = "idx_clans_members_clan_id ", columnList = "user_id"),
+@Table(name = "clans_members", indexes = {
+        @Index(name = "idx_clans_members_clan_id", columnList = "clan_id"),
+        @Index(name = "idx_clans_members_user_id", columnList = "user_id"),
         @Index(name = "idx_clans_members_is_owner", columnList = "is_owner"),
 }, uniqueConstraints = {
         @UniqueConstraint(columnNames = { "clan_id", "user_id" }),
