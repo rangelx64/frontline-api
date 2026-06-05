@@ -1,13 +1,20 @@
-# website-backend
+# Frontline
 
-📝 Observação Importante:
+API backend do projeto Frontline.
 
-Sobre DTOs Serializable: Aplicação está usando JdkSerializationRedisSerializer no RedisConfig. Isso pode funcionar, MAS
-se tiver problemas de serialização, vai precisar fazer os DTOs implementarem Serializable:
+## Cache
 
-public record ClanResponseDTO(...) implements Serializable {}
+O projeto usa Redis para cache de leituras frequentes, com serialização JSON via
+`GenericJackson2JsonRedisSerializer`.
 
-Se preferir evitar isso, trocar para GenericJackson2JsonRedisSerializer no RedisConfig:41-44.
+Configure as variáveis de ambiente:
 
-Agora o cache está funcionando corretamente! Lembrar de configurar as variáveis de ambiente REDIS_HOST, REDIS_PORT
-e CACHE_EXPIRATION no ambiente.
+- `REDIS_HOST`
+- `REDIS_PORT`
+- `CACHE_EXPIRATION`
+
+## Migrations
+
+As migrations ficam em `src/main/resources/database/migrations` e são executadas
+com Flyway.
+
