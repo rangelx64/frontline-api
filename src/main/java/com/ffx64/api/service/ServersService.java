@@ -52,12 +52,7 @@ public class ServersService {
 
     @CacheEvict(value = { "servers_all", "servers_by_id" }, allEntries = true)
     public ServerResponseDTO save(ServerRequestDTO dto) {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new UserNotFoundException("Você não está autenticado"));
-
-        if (user.getIs_admin().equals(true)) {
-            throw new UnauthorizedException("Você não tem permissão para realizar esta ação.");
-        }
+        requireAdmin();
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
@@ -82,12 +77,7 @@ public class ServersService {
 
     @Cacheable(value = "servers_all", key = "#root.methodName")
     public List<ServerResponseDTO> getAll() {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new UserNotFoundException("Você não está autenticado"));
-
-        if (user.getIs_admin().equals(true)) {
-            throw new UnauthorizedException("Você não tem permissão para realizar esta ação.");
-        }
+        requireAdmin();
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -112,12 +102,7 @@ public class ServersService {
 
     @Cacheable(value = "servers_by_id", key = "#id")
     public ServerResponseDTO getById(String id) {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new UserNotFoundException("Você não está autenticado"));
-
-        if (user.getIs_admin().equals(true)) {
-            throw new UnauthorizedException("Você não tem permissão para realizar esta ação.");
-        }
+        requireAdmin();
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -141,16 +126,11 @@ public class ServersService {
 
     @CacheEvict(value = { "servers_all", "servers_by_id" }, allEntries = true)
     public ServerResponseDTO update(String id, ServerRequestDTO dto) {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new UserNotFoundException("Você não está autenticado"));
-
-        if (user.getIs_admin().equals(true)) {
-            throw new UnauthorizedException("Você não tem permissão para realizar esta ação.");
-        }
+        requireAdmin();
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(URL + id))
+                    .uri(URI.create(URL + "/" + id))
                     .header("Authorization", SECRET_KEY)
                     .header("Content-Type", "application/json")
                     .PUT(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(dto)))
@@ -171,16 +151,11 @@ public class ServersService {
 
     @CacheEvict(value = { "servers_all", "servers_by_id" }, allEntries = true)
     public void delete(String id) {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new UserNotFoundException("Você não está autenticado"));
-
-        if (user.getIs_admin().equals(true)) {
-            throw new UnauthorizedException("Você não tem permissão para realizar esta ação.");
-        }
+        requireAdmin();
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(URL + id))
+                    .uri(URI.create(URL + "/" + id))
                     .header("Authorization", SECRET_KEY)
                     .DELETE()
                     .build();
@@ -211,6 +186,18 @@ public class ServersService {
             return mapper.readValue(json, typeRef);
         } catch (Exception e) {
             throw new RuntimeException("Erro ao converter JSON (coleção)", e);
+        }
+    }
+
+    private UserEntity getAuthenticatedUser() {
+        return userRepository.findActiveByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+                .orElseThrow(() -> new UserNotFoundException("Você não está autenticado"));
+    }
+
+    private void requireAdmin() {
+        UserEntity user = getAuthenticatedUser();
+        if (!Boolean.TRUE.equals(user.getIs_admin())) {
+            throw new UnauthorizedException("Você não tem permissão para realizar esta ação.");
         }
     }
 }

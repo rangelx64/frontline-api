@@ -24,6 +24,7 @@ import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -50,7 +51,7 @@ public class RoundsService {
     }
 
     public RoundListResponseDTO meByServerId(String serverId, Integer limit, Integer offset) {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        UserEntity user = userRepository.findActiveByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new UserNotFoundException("Você não está autenticado"));
 
         try {
@@ -74,6 +75,7 @@ public class RoundsService {
         }
     }
 
+    @Cacheable(value = "rounds_scoreboard", key = "#id", sync = true)
     public List<RoundScoreboardDTO> scoreboard(String id) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -98,10 +100,10 @@ public class RoundsService {
     }
 
     public List<RoundResponseDTO> getAll() {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        UserEntity user = userRepository.findActiveByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new UserNotFoundException("Você não está autenticado"));
 
-        if (user.getIs_admin().equals(true)) {
+        if (!Boolean.TRUE.equals(user.getIs_admin())) {
             throw new UnauthorizedException("Você não tem permissão para realizar esta ação.");
         }
 
@@ -126,6 +128,7 @@ public class RoundsService {
         }
     }
 
+    @Cacheable(value = "rounds_by_id", key = "#id", sync = true)
     public RoundResponseDTO getById(String id) {
         try {
             HttpRequest request = HttpRequest.newBuilder()

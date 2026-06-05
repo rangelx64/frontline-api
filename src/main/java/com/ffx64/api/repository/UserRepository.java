@@ -17,19 +17,28 @@ public interface UserRepository
 
     Optional<UserEntity> findByUsername(String username);
 
-    @Query("SELECT u FROM UserEntity u WHERE u.username LIKE %:name%")
-    List<UserEntity> findByNameContaining(String name);
+    @Query("SELECT u FROM UserEntity u WHERE u.email = :email AND u.active = true AND u.deleted_at IS NULL")
+    Optional<UserEntity> findActiveByEmail(String email);
+
+    @Query("SELECT u FROM UserEntity u WHERE u.username = :username AND u.active = true AND u.deleted_at IS NULL")
+    Optional<UserEntity> findActiveByUsername(String username);
+
+    @Query("SELECT u FROM UserEntity u WHERE LOWER(u.username) LIKE LOWER(CONCAT(:name, '%')) AND u.active = true AND u.deleted_at IS NULL")
+    List<UserEntity> findActiveByNameStartingWith(String name);
 
     @Query("SELECT u FROM UserEntity u WHERE u.bohemia_guid = :bohemia_guid")
     Optional<UserEntity> findByBohemia_guid(String bohemia_guid);
 
+    @Query("SELECT u FROM UserEntity u WHERE u.bohemia_guid = :bohemia_guid AND u.active = true AND u.deleted_at IS NULL")
+    Optional<UserEntity> findActiveByBohemiaGuid(String bohemia_guid);
+
     default UserDetails findByEmailDetails(String email) {
-        Optional<UserEntity> userEntity = findByEmail(email);
+        Optional<UserEntity> userEntity = findActiveByEmail(email);
         return userEntity
                 .map(u -> new org.springframework.security.core.userdetails.User(
                         u.getEmail(),
                         u.getPassword(),
                         u.getAuthorities()))
-                .orElse(null); // fecha o map
+                .orElse(null);
     }
 }

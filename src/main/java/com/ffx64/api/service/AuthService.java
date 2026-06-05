@@ -9,8 +9,7 @@ import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -38,9 +37,6 @@ public class AuthService {
 
     @Autowired
     private JWTService jwtService;
-
-    @Autowired
-    private AuthenticationManager authenticationManager;
 
     @Value("${http.gamestats.api.secret}")
     private String SECRET_KEY;
@@ -107,11 +103,12 @@ public class AuthService {
     }
 
     public LoginResponseDTO login(LoginRequestDTO request) {
-        authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
-
         UserEntity user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new BadCredentialsException("Credenciais inválidas");
+        }
 
         if (user.getDeletedAt() != null) {
             LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
@@ -125,6 +122,10 @@ public class AuthService {
                 user.setActive(true);
                 userRepository.save(user);
             }
+        }
+
+        if (!Boolean.TRUE.equals(user.getActive())) {
+            throw new UserNotFoundException("Usuário não encontrado");
         }
 
         String token = jwtService.generateToken(user.getEmail());

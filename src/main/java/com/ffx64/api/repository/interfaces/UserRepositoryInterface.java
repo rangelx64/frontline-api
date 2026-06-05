@@ -9,7 +9,13 @@ public interface UserRepositoryInterface {
 
     Optional<UserEntity> findByUsername(String username);
 
-    List<UserEntity> findByNameContaining(String name);
+    Optional<UserEntity> findActiveByEmail(String email);
+
+    Optional<UserEntity> findActiveByUsername(String username);
+
+    List<UserEntity> findActiveByNameStartingWith(String name);
 
     Optional<UserEntity> findByBohemia_guid(String bohemia_guid);
+
+    Optional<UserEntity> findActiveByBohemiaGuid(String bohemia_guid);
 }

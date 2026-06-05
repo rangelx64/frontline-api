@@ -1,29 +1,16 @@
 package com.ffx64.api.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ffx64.api.dto.PlayerStatsResponseDTO;
 import com.ffx64.api.dto.UserRequestDTO;
 import com.ffx64.api.dto.UserResponseDTO;
 import com.ffx64.api.entity.UserEntity;
-import com.ffx64.api.exception.ApiErrorResponseDTO;
-import com.ffx64.api.exception.GenericException;
-import com.ffx64.api.exception.InternalServerErrorException;
 import com.ffx64.api.exception.UserNotFoundException;
 import com.ffx64.api.repository.UserRepository;
 import com.ffx64.api.service.interfaces.UserServiceInterface;
 
-import jakarta.annotation.PostConstruct;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,33 +18,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserService implements UserServiceInterface {
 
-    @Value("${http.gamestats.api.url}")
-    private String BASE_URL;
-
-    @Value("${http.gamestats.api.secret}")
-    private String SECRET_KEY;
-
-    private URI URL;
-    private final HttpClient client = HttpClient.newHttpClient();
-    private final ObjectMapper mapper = new ObjectMapper();
-
     @Autowired
     private UserRepository userRepository;
 
-    @PostConstruct
-    private void init() {
-        this.URL = URI.create(BASE_URL + "/api/v1/players");
-    }
+    @Autowired
+    private PlayersService playersService;
 
     public UserResponseDTO get() {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        UserEntity user = userRepository.findActiveByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new UserNotFoundException("Você não está autenticado."));
         return toResponseDTO(user);
     }
 
     @Transactional
     public UserResponseDTO update(UserRequestDTO userRequestDTO) {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        UserEntity user = userRepository.findActiveByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new UserNotFoundException("Você não está autenticado."));
 
         user.setUsername(userRequestDTO.username());
@@ -76,7 +51,7 @@ public class UserService implements UserServiceInterface {
 
     @Transactional
     public void delete() {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        UserEntity user = userRepository.findActiveByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new UserNotFoundException("Você não está autenticado."));
 
         user.setDeletedAt(LocalDateTime.now());
@@ -86,35 +61,10 @@ public class UserService implements UserServiceInterface {
     }
 
     public PlayerStatsResponseDTO stats() {
-        UserEntity user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        UserEntity user = userRepository.findActiveByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new UserNotFoundException("Você não está autenticado."));
 
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(URL + "/" + user.getBohemia_guid() + "/stats"))
-                    .header("Authorization", SECRET_KEY)
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != HttpStatus.OK.value()) {
-                ApiErrorResponseDTO error = mapper.readValue(response.body(), ApiErrorResponseDTO.class);
-                throw new GenericException(error.message(), error.status());
-            }
-
-            return fromJsonToDTO(response.body(), PlayerStatsResponseDTO.class);
-        } catch (IOException | InterruptedException e) {
-            throw new InternalServerErrorException();
-        }
-    }
-
-    private <T> T fromJsonToDTO(String json, Class<T> clazz) {
-        try {
-            return mapper.readValue(json, clazz);
-        } catch (Exception e) {
-            throw new RuntimeException("Erro ao converter JSON para " + clazz.getSimpleName(), e);
-        }
+        return playersService.getByGuid(user.getBohemia_guid());
     }
 
     private UserResponseDTO toResponseDTO(UserEntity user) {
