@@ -37,7 +37,7 @@ public class PlayersService {
         this.URL = URI.create(BASE_URL + "/api/v1/players");
     }
 
-    @Cacheable(value = "players_profile", key = "#bohemia_guid")
+    @Cacheable(value = "players_profile", key = "#bohemia_guid", sync = true)
     public PlayerStatsResponseDTO getByGuid(String bohemia_guid) {
         try {
             HttpRequest request = HttpRequest.newBuilder()

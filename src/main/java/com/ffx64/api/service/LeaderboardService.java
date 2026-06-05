@@ -9,6 +9,8 @@ import com.ffx64.api.exception.ApiErrorResponseDTO;
 import com.ffx64.api.exception.GenericException;
 import com.ffx64.api.exception.InternalServerErrorException;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class LeaderboardService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LeaderboardService.class);
 
     @Value("${http.gamestats.api.url}")
     private String BASE_URL;
@@ -45,7 +49,7 @@ public class LeaderboardService {
         this.URL = URI.create(BASE_URL + "/api/v1/leaderboard");
     }
 
-    @Cacheable(value = "leaderboard_general")
+    @Cacheable(value = "leaderboard_general", sync = true)
     public List<LeaderboardResponseDTO> getLeaderboard() {
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -70,7 +74,7 @@ public class LeaderboardService {
         }
     }
 
-    @Cacheable(value = "leaderboard_vehicle")
+    @Cacheable(value = "leaderboard_vehicle", sync = true)
     public List<LeaderboardResponseDTO> getLeaderboardByVehicle() {
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -95,7 +99,7 @@ public class LeaderboardService {
         }
     }
 
-    @Cacheable(value = "leaderboard_headshots")
+    @Cacheable(value = "leaderboard_headshots", sync = true)
     public List<LeaderboardResponseDTO> getLeaderboardByHeadshots() {
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -135,7 +139,7 @@ public class LeaderboardService {
             PlayerStatsResponseDTO player = playersService.getByGuid(stats.player_id());
             username = player.username();
         } catch (Exception e) {
-            System.err.println("Player não encontrado para GUID: " + stats.player_id());
+            LOGGER.warn("Player não encontrado para GUID: {}", stats.player_id());
         }
 
         return new LeaderboardResponseDTO(
