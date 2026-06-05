@@ -7,11 +7,12 @@ import com.ffx64.api.exception.ClanExistsException;
 import com.ffx64.api.repository.ClanRepository;
 import com.ffx64.api.service.interfaces.ClanServiceInterface;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,19 +26,17 @@ public class ClanService implements ClanServiceInterface {
         this.clanRepository = clanRepository;
     }
 
-    @Cacheable(value = "clans_find_all")
-    public List<ClanResponseDTO> findAll() {
+    @Cacheable(value = "clans_find_all", key = "#pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort")
+    public Page<ClanResponseDTO> findAll(Pageable pageable) {
         return clanRepository
-                .findAll()
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
+                .findAll(pageable)
+                .map(this::toResponseDTO);
     }
 
     @Transactional
-    @CacheEvict(value = "clans", allEntries = true)
+    @CacheEvict(value = { "clans_find_all", "clans_find_by_id", "clans_find_by_tag",
+            "clans_find_by_name" }, allEntries = true)
     public ClanResponseDTO save(ClanRequestDTO clanRequestDTO) {
-        System.out.println(clanRequestDTO + " - clanRequestDTO");
         clanRepository
                 .findByTag(clanRequestDTO.tag())
                 .ifPresent(clan -> {
@@ -62,7 +61,7 @@ public class ClanService implements ClanServiceInterface {
     }
 
     @Transactional
-    @CacheEvict(value = { "clans", "clans_find_all", "clans_find_by_id", "clans_find_by_tag",
+    @CacheEvict(value = { "clans_find_all", "clans_find_by_id", "clans_find_by_tag",
             "clans_find_by_name" }, allEntries = true)
     public Boolean deleteById(UUID id) {
         if (clanRepository.findById(id).isPresent()) {

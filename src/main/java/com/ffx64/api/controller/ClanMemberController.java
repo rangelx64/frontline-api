@@ -8,6 +8,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -37,8 +42,10 @@ public class ClanMemberController {
 
     @GetMapping("/all")
     @Operation(summary = "Retorna todos os membros de clã")
-    public ResponseEntity<List<ClanMemberResponseDTO>> getAllClanMembers() {
-        return ResponseEntity.ok(clanMemberService.findAll());
+    public ResponseEntity<Page<ClanMemberResponseDTO>> getAllClanMembers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(clanMemberService.findAll(pageable(page, size)));
     }
 
     @GetMapping("/{id}")
@@ -63,5 +70,11 @@ public class ClanMemberController {
     public ResponseEntity<List<ClanMemberResponseDTO>> getClanMembersByUserId(
             @PathVariable UUID userId) {
         return ResponseEntity.ok(clanMemberService.findByUserId(userId));
+    }
+
+    private Pageable pageable(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "joined_at"));
     }
 }

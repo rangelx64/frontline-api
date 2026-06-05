@@ -4,6 +4,8 @@ import com.ffx64.api.entity.ClanMemberEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ClanMemberRepositoryInterface {
     List<ClanMemberEntity> findByClanId(UUID clanId);
@@ -12,7 +14,7 @@ public interface ClanMemberRepositoryInterface {
 
     Optional<ClanMemberEntity> findByClanIdAndUserId(UUID clanId, UUID userId);
 
-    List<ClanMemberEntity> findAll();
+    Page<ClanMemberEntity> findAll(Pageable pageable);
 
     Optional<ClanMemberEntity> findById(UUID id);
 }

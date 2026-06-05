@@ -1,16 +1,17 @@
 package com.ffx64.api.repository.interfaces;
 
 import com.ffx64.api.entity.AccessLogEntity;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface AccessLogRepositoryInterface {
-    List<AccessLogEntity> findByUserId(UUID user_id);
+    Page<AccessLogEntity> findByUserId(UUID userId, Pageable pageable);
 
-    List<AccessLogEntity> findByIpAddress(String ip_address);
+    Page<AccessLogEntity> findByIpAddress(String ipAddress, Pageable pageable);
 
-    List<AccessLogEntity> findAll();
+    Page<AccessLogEntity> findAll(Pageable pageable);
 
     Optional<AccessLogEntity> findById(Long id);
 }

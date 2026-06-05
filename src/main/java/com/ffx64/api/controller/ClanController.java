@@ -4,9 +4,12 @@ import com.ffx64.api.dto.ClanRequestDTO;
 import com.ffx64.api.dto.ClanResponseDTO;
 import com.ffx64.api.service.interfaces.ClanServiceInterface;
 import io.swagger.v3.oas.annotations.Operation;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -42,8 +46,10 @@ public class ClanController {
 
     @GetMapping("/all")
     @Operation(summary = "Retorna todos os clãs")
-    public ResponseEntity<List<ClanResponseDTO>> getAllClans() {
-        List<ClanResponseDTO> clanResponseDTOs = clanService.findAll();
+    public ResponseEntity<Page<ClanResponseDTO>> getAllClans(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        Page<ClanResponseDTO> clanResponseDTOs = clanService.findAll(pageable(page, size));
         return ResponseEntity.status(HttpStatus.OK).body(clanResponseDTOs);
     }
 
@@ -91,5 +97,11 @@ public class ClanController {
     public ResponseEntity<Boolean> deleteClan(@PathVariable UUID id) {
         Boolean deleted = clanService.deleteById(id);
         return ResponseEntity.status(HttpStatus.OK).body(deleted);
+    }
+
+    private Pageable pageable(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "name"));
     }
 }

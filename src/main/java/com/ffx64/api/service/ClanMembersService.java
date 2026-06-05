@@ -15,6 +15,8 @@ import com.ffx64.api.service.interfaces.ClanMemberServiceInterface;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.CacheEvict;
@@ -39,7 +41,7 @@ public class ClanMembersService implements ClanMemberServiceInterface {
 
     @Transactional
     @CacheEvict(value = { "clan_members_find_all", "clan_members_find_by_clan_id",
-            "clan_members_find_by_user_id" }, allEntries = true)
+            "clan_members_find_by_user_id", "clan_members_find_by_id" }, allEntries = true)
     public ClanMemberResponseDTO save(
             ClanMemberRequestDTO clanMembersRequestDTO) {
         ClanEntity clan = clanRepository
@@ -67,13 +69,11 @@ public class ClanMembersService implements ClanMemberServiceInterface {
         return toDTO(savedClanMembers);
     }
 
-    @Cacheable(value = "clan_members_find_all")
-    public List<ClanMemberResponseDTO> findAll() {
+    @Cacheable(value = "clan_members_find_all", key = "#pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort")
+    public Page<ClanMemberResponseDTO> findAll(Pageable pageable) {
         return clanMembersRepository
-                .findAll()
-                .stream()
-                .map(this::toDTO)
-                .toList();
+                .findAll(pageable)
+                .map(this::toDTO);
     }
 
     @Cacheable(value = "clan_members_find_by_id", key = "#id")
