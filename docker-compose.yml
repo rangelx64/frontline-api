@@ -1,6 +1,6 @@
 services:
   website_postgres:
-    image: bitnamilegacy/postgresql:17.6.0-debian-12-r0
+    image: soldevelo/postgresql:17.6.0-debian-12-r0
     container_name: website_postgres
     environment:
       POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
